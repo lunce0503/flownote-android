@@ -98,6 +98,10 @@ try {
   token = (await request('/api/users/login', 'POST', { email, password })).token;
   await page.getByLabel('이메일').fill(email);
   await page.getByLabel('비밀번호', { exact: true }).fill(password);
+  if (imeShown()) {
+    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK');
+    await until(() => !imeShown(), 'login keyboard dismissed');
+  }
   await page.getByRole('button', { name: '계속하기', exact: true }).click();
   await page.waitForURL(url => url.origin === web && url.pathname !== '/login');
   noteId = randomUUID();
@@ -157,6 +161,23 @@ try {
     if (imeShown()) adb('shell', 'input', 'keyevent', 'KEYCODE_BACK');
     await tap({ x: word.x + word.width / 2, y: word.y + word.height / 2 });
     await until(imeShown, 'OS keyboard opens after lasso/edit/body touch');
+    const target = await page.evaluate(() => {
+      const selection = getSelection();
+      if (!selection?.rangeCount) throw new Error('Native input selection missing');
+      const range = selection.getRangeAt(0);
+      const start = range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer : range.startContainer.parentElement;
+      const end = range.endContainer.nodeType === Node.ELEMENT_NODE ? range.endContainer : range.endContainer.parentElement;
+      const line = start.closest('.cm-line');
+      if (!line || end.closest('.cm-line') !== line) throw new Error('Expected one selected code line');
+      const prefix = document.createRange(); prefix.selectNodeContents(line); prefix.setEnd(range.startContainer, range.startOffset);
+      return { line: line.textContent, from: prefix.toString().length, selected: range.toString() };
+    });
+    const lines = before.content.text.split('\n');
+    const lineIndex = lines.findIndex(line => line === target.line);
+    assert(lineIndex >= 0 && lines.filter(line => line === target.line).length === 1, 'Unique synthetic input line');
+    const offset = lines.slice(0, lineIndex).reduce((length, line) => length + line.length + 1, 0) + target.from;
+    assert.equal(before.content.text.slice(offset, offset + target.selected.length), target.selected, 'DOM input range matches saved source');
+    const expectedText = before.content.text.slice(0, offset) + 'a' + before.content.text.slice(offset + target.selected.length);
     const keyboard = keyboardBounds();
     writeFileSync(`${directory}/${mode}-keyboard-${iteration + 1}.png`, adbBytes('exec-out', 'screencap', '-p'));
     tapSoftA();
@@ -165,12 +186,10 @@ try {
       saved = await request(`/api/notes/${noteId}`, 'GET', undefined, token);
       return saved.revision > before.revision;
     }, 'soft-keyboard character saved');
-    const previousText = before.content.text, nextText = saved.content.text;
-    assert.equal(nextText.length, previousText.length + 1, 'One actual soft-keyboard character');
-    assert([...nextText].some((character, index) => character === 'a'
-      && nextText.slice(0, index) + nextText.slice(index + 1) === previousText), 'Soft a key preserves surrounding code');
+    const nextText = saved.content.text;
+    assert.equal(nextText, expectedText, 'Actual soft a key replaces exactly the native DOM selection and preserves all surrounding code');
     assert.deepEqual(saved.content, { ...before.content, text: nextText });
-    results.push({ iteration: iteration + 1, keyboardShown: true, keyboard, revision: saved.revision,
+    results.push({ iteration: iteration + 1, keyboardShown: true, keyboard, revision: saved.revision, nativeSelectionLength: target.selected.length,
       sourceSha256: createHash('sha256').update(nextText).digest('hex'), afterPinchAndScroll: iteration > 0 });
     console.log(JSON.stringify({ mode, ...results.at(-1) }));
   }
