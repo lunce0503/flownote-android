@@ -80,6 +80,8 @@ try {
   const context = browser.contexts()[0];
   const page = context.pages().find(value => value.url().startsWith(web)) || context.pages()[0];
   assert(page); page.setDefaultTimeout(45000);
+  await page.bringToFront();
+  assert.equal(await page.evaluate(() => document.visibilityState), 'visible', 'Automate the visible installed-browser tab');
   cdp = await context.newCDPSession(page);
   const send = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
   const tap = async point => { await send('touchStart', [{ ...point, id: 1 }]); await send('touchEnd', []); };
