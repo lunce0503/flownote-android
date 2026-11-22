@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { randomUUID, createHash, verify } from 'node:crypto';
-import { chromium } from '../../flownote/node_modules/playwright-core/index.mjs';
+const { chromium } = await import(process.env.FLOWNOTE_TEST_PLAYWRIGHT_MODULE || new URL('../../flownote/node_modules/playwright-core/index.mjs', import.meta.url).href);
 
-const root = new URL('../../', import.meta.url).pathname;
+const root = process.env.FLOWNOTE_TEST_ROOT || new URL('../../', import.meta.url).pathname;
+const baselineVersion = process.env.FLOWNOTE_TEST_BASELINE_VERSION || '1.3.1';
+const baselineCode = Number(process.env.FLOWNOTE_TEST_BASELINE_CODE || 13100);
+const targetVersion = process.env.FLOWNOTE_TEST_TARGET_VERSION || '1.3.2';
+const targetCode = Number(process.env.FLOWNOTE_TEST_TARGET_CODE || 13200);
+assert.match(baselineVersion, /^\d+\.\d+\.\d+$/); assert.match(targetVersion, /^\d+\.\d+\.\d+$/);
+assert(Number.isSafeInteger(baselineCode) && Number.isSafeInteger(targetCode) && targetCode > baselineCode);
 const adbPath = process.env.FLOWNOTE_TEST_ADB || '/tmp/flownote-app-android-sdk/platform-tools/adb';
 const adb = (...args) => execFileSync(adbPath, args, { encoding: 'utf8', timeout: 60000 });
 const bytes = (...args) => execFileSync(adbPath, args, { timeout: 60000 });
@@ -72,8 +78,8 @@ async function apiRequest(route, method, body, token) {
 const envelope = await (await fetch(`${web}/updates/staging/android.json`)).json();
 const payload = Buffer.from(envelope.payload, 'base64');
 assert(verify('sha256', payload, readFileSync(`${root}flownote-desktop/update-public.pem`), Buffer.from(envelope.signature, 'base64')));
-const feed = JSON.parse(payload); assert.equal(feed.versionCode, 13200); assert.equal(feed.version, '1.3.2'); assert.equal(feed.channel, 'staging');
-const candidate = readFileSync(`${root}flownote/public/downloads/flownote-1.3.2-staging.apk`);
+const feed = JSON.parse(payload); assert.equal(feed.versionCode, targetCode); assert.equal(feed.version, targetVersion); assert.equal(feed.channel, 'staging');
+const candidate = readFileSync(`${root}flownote/public/downloads/flownote-${targetVersion}-staging.apk`);
 assert.equal(candidate.length, feed.artifacts.apk.size);
 assert.equal(createHash('sha256').update(candidate).digest('hex'), feed.artifacts.apk.sha256);
 const email = `native-upgrade-${randomUUID()}@example.com`, password = randomUUID();
@@ -86,8 +92,8 @@ try {
   await apiRequest('/api/notes', 'POST', { id, title: 'upgrade-preserved.py', content, revision: 1, client_id: randomUUID() }, token); noteCreated = true;
   if (browser) await browser.close();
   adb('shell', 'am', 'force-stop', pkg);
-  adb('install', '-r', '-d', `${root}flownote/public/downloads/flownote-1.3.1-staging.apk`);
-  assert(adb('shell', 'dumpsys', 'package', pkg).includes('versionCode=13100'));
+  adb('install', '-r', '-d', `${root}flownote/public/downloads/flownote-${baselineVersion}-staging.apk`);
+  assert(adb('shell', 'dumpsys', 'package', pkg).includes(`versionCode=${baselineCode}`));
   adb('shell', 'run-as', pkg, 'rm', '-f', 'files/updates/update.apk', 'files/updates/update.apk.part');
   await restart();
   await page.goto(`${web}/login`); await page.getByLabel('이메일').fill(email); await page.getByLabel('비밀번호', { exact: true }).fill(password);
@@ -114,9 +120,9 @@ try {
     adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); tap(['설치']);
   }
   await until(() => /topResumedActivity=.*packageinstaller/i.test(adb('shell', 'dumpsys', 'activity', 'activities')), 'OS install confirmation');
-  assert(adb('shell', 'dumpsys', 'package', pkg).includes('versionCode=13100'));
+  assert(adb('shell', 'dumpsys', 'package', pkg).includes(`versionCode=${baselineCode}`));
   tap(['UPDATE', 'Update', '업데이트', 'INSTALL', 'Install', '설치']);
-  await until(() => adb('shell', 'dumpsys', 'package', pkg).includes('versionCode=13200'), 'user-confirmed13200 upgrade');
+  await until(() => adb('shell', 'dumpsys', 'package', pkg).includes(`versionCode=${targetCode}`), `user-confirmed${targetCode} upgrade`);
   await until(() => /topResumedActivity=.*InstallSuccess/.test(adb('shell', 'dumpsys', 'activity', 'activities')), 'OS completed');
   tap(['DONE', 'Done', '완료']); await restart();
   await page.getByRole('navigation', { name: '앱 기능' }).waitFor();
@@ -125,9 +131,9 @@ try {
   assert.deepEqual((await apiRequest(`/api/notes/${id}`, 'GET', null, token)).content, content);
   assert.equal(await page.getByLabel('노트 제목').inputValue(), 'upgrade-preserved.py');
   await openUpdates(); tap(['업데이트 확인']);
-  await until(() => ui().includes('최신 버전 · 1.3.2-staging'), 'latest version after upgrade'); tap(['닫기']);
+  await until(() => ui().includes(`최신 버전 · ${targetVersion}-staging`), 'latest version after upgrade'); tap(['닫기']);
   await page.evaluate(() => localStorage.removeItem('flownote-native-code-upgrade-probe'));
-  console.log('PASS signed13100→13200: actual download/SHA/native signer/cache restart/OS confirmation, session/local marker/code encoding preservation, latest-version check');
+  console.log(`PASS signed${baselineCode}→${targetCode}: actual download/SHA/native signer/cache restart/OS confirmation, session/local marker/code encoding preservation, latest-version check`);
 } finally {
   if (browser) await browser.close();
   if (noteCreated) await apiRequest(`/api/notes/${id}`, 'DELETE', null, token);
