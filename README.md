@@ -1,8 +1,8 @@
-# Flownote Android
+# fot Android
 
 Android 10 이상용 독립 설치 APK. `com.flownote.mobile` 패키지로 설치하며 Expo Go가 필요 없다.
 
-웹 전체 역량과 편집기를 유지하기 위해 Android 시스템 WebView에서 배포된 `flownote/`를 실행한다. 웹이 갱신되면 앱에도 같은 기능이 반영된다. 네트워크 연결이 필요하며 기존 웹 세션 저장 및 로컬 초안 정책을 그대로 사용한다. `apps/android/`는 별개의 Flownote Remote 앱이므로 이 앱과 혼동하지 않는다.
+웹 전체 역량과 편집기를 유지하기 위해 Android 시스템 WebView에서 배포된 `flownote/`를 실행한다. 웹이 갱신되면 앱에도 같은 기능이 반영된다. 네트워크 연결이 필요하며 기존 웹 세션 저장 및 로컬 초안 정책을 그대로 사용한다. `apps/android/`는 별개의 fot Remote 앱이므로 이 앱과 혼동하지 않는다.
 
 ## 빌드
 
@@ -19,7 +19,7 @@ Java 17, Android SDK 35, Build Tools 35.0.0을 사용한다.
 - debug: 패키지 `com.flownote.mobile.staging`, staging 웹에 연결.
 - release: 패키지 `com.flownote.mobile`, production 웹에 연결.
 - 앱 식별: WebView UA의 `FlownoteAndroid/<BuildConfig.VERSION_NAME>` marker.
-- 기존 Flownote 헤더 대신 앱 전용 하단 탐색과 전체 기능 메뉴 사용.
+- 기존 fot 헤더 대신 앱 전용 하단 탐색과 전체 기능 메뉴 사용.
 - 파일: 시스템 문서 선택기와 HTTPS DownloadManager. 1.3.0 PDF는 최대 100MiB를 256KiB씩 private cache에 기록하고 시스템 저장 선택기로 내보낸다. 나머지 blob/data 내보내기는 기존 32MiB 한도를 유지한다. origin·총 크기·순서·PDF 헤더를 검사하고 취소/오류의 부분 파일을 정리한다.
 - 보안: HTTPS 고정 origin, 외부 링크는 별도 앱, 파일 URL·혼합 콘텐츠 차단, JavaScript native bridge 없음, 백업 비활성화, release WebView 디버깅 비활성화.
 
