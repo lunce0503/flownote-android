@@ -132,6 +132,17 @@ try {
   assert.equal(await page.getByLabel('노트 제목').inputValue(), 'upgrade-preserved.py');
   await openUpdates(); tap(['업데이트 확인']);
   await until(() => ui().includes(`최신 버전 · ${targetVersion}-staging`), 'latest version after upgrade'); tap(['닫기']);
+  if (process.env.FLOWNOTE_TEST_FOT_RELEASE === '1') {
+    for (const route of ['/api/stocks', '/api/stocks/AAPL', '/api/market', '/api/market/AAPL']) {
+      const retired = await fetch(api + route, { headers: { Authorization: `Bearer ${token}` } });
+      assert.equal(retired.status, 410, `Retired market route ${route}`);
+    }
+    await page.getByRole('navigation', { name: '앱 기능' }).getByRole('button', { name: '전체 기능', exact: true }).click();
+    const menu = page.getByRole('dialog', { name: '전체 기능', exact: true });
+    for (const route of ['/stocks', '/banpick', '/screw-puzzle', '/magic']) assert.equal(await menu.locator(`a[href="${route}"]`).count(), 0);
+    await menu.getByRole('link', { name: '설정', exact: true }).click();
+    console.log('PASS fot native upgrade exposes four retired UI features as absent and market APIs410');
+  }
   await page.evaluate(() => localStorage.removeItem('flownote-native-code-upgrade-probe'));
   console.log(`PASS signed${baselineCode}→${targetCode}: actual download/SHA/native signer/cache restart/OS confirmation, session/local marker/code encoding preservation, latest-version check`);
 } finally {
