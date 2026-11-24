@@ -7,8 +7,8 @@ android {
         applicationId = "com.flownote.mobile"
         minSdk = 29
         targetSdk = 35
-        versionCode = providers.gradleProperty("testVersionCode").orNull?.toInt() ?: 13300
-        versionName = providers.gradleProperty("testVersionName").orNull ?: "1.3.3"
+        versionCode = providers.gradleProperty("testVersionCode").orNull?.toInt() ?: 13400
+        versionName = providers.gradleProperty("testVersionName").orNull ?: "1.3.4"
     }
     signingConfigs {
         create("distribution") {
@@ -39,4 +39,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    implementation(project(":remote-terminal"))
+    testImplementation("junit:junit:4.13.2")
 }

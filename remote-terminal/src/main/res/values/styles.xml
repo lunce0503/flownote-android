@@ -1,0 +1,10 @@
+<resources>
+    <style name="RemoteTerminalTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#171A1D</item>
+        <item name="android:navigationBarColor">#171A1D</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#63D4B1</item>
+    </style>
+</resources>

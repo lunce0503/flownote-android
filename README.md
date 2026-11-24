@@ -2,11 +2,13 @@
 
 Android 10 이상용 독립 설치 APK. `com.flownote.mobile` 패키지로 설치하며 Expo Go가 필요 없다.
 
-웹 전체 역량과 편집기를 유지하기 위해 Android 시스템 WebView에서 배포된 `flownote/`를 실행한다. 웹이 갱신되면 앱에도 같은 기능이 반영된다. 네트워크 연결이 필요하며 기존 웹 세션 저장 및 로컬 초안 정책을 그대로 사용한다. `apps/android/`는 별개의 fot Remote 앱이므로 이 앱과 혼동하지 않는다.
+웹 전체 역량과 편집기를 유지하기 위해 Android 시스템 WebView에서 배포된 `flownote/`를 실행한다. 웹이 갱신되면 앱에도 같은 기능이 반영된다. 네트워크 연결이 필요하며 기존 웹 세션 저장 및 로컬 초안 정책을 그대로 사용한다.
+
+`:remote-terminal`은 PC 등록·터미널·코드 편집을 fot APK에 포함한다. **전체 → 원격 터미널** 또는 Android 홈 화면의 fot 아이콘을 길게 눌러 실행한다. 기존 독립 앱에 등록한 PC는 fot에서 다시 등록한다. 같은 사설망/VPN에서 Windows·Linux의 Remote Host에 연결하며, 코드 탭은 Host 0.4.0 이상을 사용한다. [Host 릴리스](https://github.com/lunce0503/flownote-service/releases/tag/remote-host-v0.4.0)
 
 ## 빌드
 
-Java 17, Android SDK 35, Build Tools 35.0.0을 사용한다.
+Java 17, Android SDK 35, Build Tools 35.0.0, Node.js 24와 npm을 사용한다. Gradle 빌드가 xterm.js와 CodeMirror를 lockfile대로 받아 APK에 번들한다.
 
 ```bash
 ./gradlew assembleDebug lintRelease
@@ -21,7 +23,7 @@ Java 17, Android SDK 35, Build Tools 35.0.0을 사용한다.
 - 앱 식별: WebView UA의 `FlownoteAndroid/<BuildConfig.VERSION_NAME>` marker.
 - 기존 fot 헤더 대신 앱 전용 하단 탐색과 전체 기능 메뉴 사용.
 - 파일: 시스템 문서 선택기와 HTTPS DownloadManager. 1.3.0 PDF는 최대 100MiB를 256KiB씩 private cache에 기록하고 시스템 저장 선택기로 내보낸다. 나머지 blob/data 내보내기는 기존 32MiB 한도를 유지한다. origin·총 크기·순서·PDF 헤더를 검사하고 취소/오류의 부분 파일을 정리한다.
-- 보안: HTTPS 고정 origin, 외부 링크는 별도 앱, 파일 URL·혼합 콘텐츠 차단, JavaScript native bridge 없음, 백업 비활성화, release WebView 디버깅 비활성화.
+- 보안: fot 웹 WebView는 HTTPS 고정 origin을 사용하고 파일 URL·혼합 콘텐츠를 차단한다. 터미널의 메시지 브리지는 별도 WebView의 앱 번들 자산에 제한한다. 백업과 release WebView 디버깅은 비활성화한다.
 
 ## 배포
 

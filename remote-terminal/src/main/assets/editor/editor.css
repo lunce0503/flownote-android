@@ -1,0 +1,6 @@
+html,body,#editor{width:100%;height:100%;margin:0;overflow:hidden;background:#101214;color:#e6e8eb;font:14px monospace;letter-spacing:0}
+.cm-editor{height:100%}.cm-scroller{overflow:auto;font:14px/1.6 monospace;overscroll-behavior:contain}
+.cm-content{padding:8px 0}.cm-line{padding:0 12px}.cm-search{display:flex;flex-wrap:wrap;gap:6px;padding:6px!important}
+.cm-search input{min-width:0;max-width:140px;font:14px sans-serif;background:#171a1d;color:#eee;border:1px solid #6b7280;border-radius:4px;padding:6px}
+.cm-search button{min-height:32px;background:#272d33;color:#fff;border:1px solid #6b7280;border-radius:4px}
+.cm-search label{font:12px sans-serif;white-space:nowrap}.cm-panels{max-height:45%;overflow:auto}

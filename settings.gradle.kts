@@ -4,4 +4,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "Flownote"
-include(":app")
+include(":app", ":remote-terminal")

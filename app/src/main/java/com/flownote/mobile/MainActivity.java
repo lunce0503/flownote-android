@@ -6,7 +6,10 @@ import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.ShortcutInfo;
+import android.content.pm.ShortcutManager;
 import android.graphics.Color;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +35,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import org.json.JSONObject;
+import kr.flownote.remote.RemoteTerminalActivity;
 
 import java.io.OutputStream;
 
@@ -82,7 +86,8 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " FlownoteAndroid/" + BuildConfig.VERSION_NAME);
+        settings.setUserAgentString(settings.getUserAgentString() + " FlownoteAndroid/" + BuildConfig.VERSION_NAME
+            + " FotRemoteTerminal/1");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
@@ -113,8 +118,13 @@ public final class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (trusted(request.getUrl()) && request.getUrl().getPath() != null
                     && request.getUrl().getPath().startsWith("/__flownote_native__/")) {
-                    if (UpdateSettingsPolicy.mayOpen(BuildConfig.WEB_URL, view.getUrl(), request.getUrl().toString(),
+                    String target = request.getUrl().toString();
+                    if (UpdateSettingsPolicy.mayOpen(BuildConfig.WEB_URL, view.getUrl(), target,
                         request.isForMainFrame(), request.hasGesture(), request.getMethod())) updater.showDetails();
+                    if (RemoteTerminalEntryPolicy.mayOpen(BuildConfig.WEB_URL, view.getUrl(), target,
+                        request.isForMainFrame(), request.hasGesture(), request.getMethod())) {
+                        startActivity(new Intent(MainActivity.this, RemoteTerminalActivity.class));
+                    }
                     return true;
                 }
                 if (trusted(request.getUrl())) return false;
@@ -183,6 +193,17 @@ public final class MainActivity extends Activity {
         web.setDownloadListener(this::download);
         if (state == null || web.restoreState(state) == null) web.loadUrl(BuildConfig.WEB_URL);
         if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, this::goBack);
+        registerRemoteTerminalShortcut();
+    }
+
+    private void registerRemoteTerminalShortcut() {
+        ShortcutManager shortcuts = getSystemService(ShortcutManager.class);
+        if (shortcuts == null || shortcuts.getDynamicShortcuts().stream().anyMatch(shortcut -> "remote-terminal".equals(shortcut.getId()))) return;
+        shortcuts.addDynamicShortcuts(java.util.List.of(new ShortcutInfo.Builder(this, "remote-terminal")
+            .setShortLabel("원격 터미널")
+            .setIcon(Icon.createWithResource(this, R.drawable.ic_remote_terminal))
+            .setIntent(new Intent(Intent.ACTION_VIEW).setClass(this, RemoteTerminalActivity.class))
+            .build()));
     }
 
     private void publishUpdateState() {

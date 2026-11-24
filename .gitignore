@@ -1,5 +1,7 @@
 .gradle/
+.kotlin/
 **/build/
 local.properties
 *.jks
 *.keystore
+/remote-terminal/terminal/node_modules/
